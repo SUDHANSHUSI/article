@@ -1,27 +1,35 @@
 const BlogPostModel = require("../models/blogModel");
 const mongoose = require("mongoose");
-const catchAsync = require("../utils/catchAsync");
+const catchAsync = require("express-async-handler");
+const AppError = require("../utils/appError");
 
 //******************************CREATE A NEW BLOGPOST******************************
 
-const createBlogPost = catchAsync(async (req, res) => {
+const createBlogPost = catchAsync(async (req, res, next) => {
   const { title, author, content } = req.body;
-  const blogPost = await BlogPostModel.create({ title, author, content });
+  const blogPost = await BlogPostModel.create({
+    title,
+    author,
+    content,
+    user: req.user.id,
+  });
   res.status(201).json(blogPost);
 });
 
 //*****************************GET ALL BLOGPOSTS************************************
 
-const getAllBlogPosts = catchAsync(async (req, res) => {
+const getAllBlogPosts = catchAsync(async (req, res, next) => {
   const blogPosts = await BlogPostModel.find();
   res.status(200).json(blogPosts);
 });
 
 // *******************************GET A BLOGPOST BY ID*******************************
+const getBlogPostById = catchAsync(async (req, res, next) => {
+  const id = req.params.id;
+  if (!id) return next(new AppError("ID is not present in parameter", 403));
 
-const getBlogPostById = catchAsync(async (req, res) => {
-  const { id } = req.params;
   const blogPost = await BlogPostModel.findById(id);
+
   if (!blogPost) {
     res.status(404).json({ message: "Blog post not found" });
   } else {
@@ -31,50 +39,82 @@ const getBlogPostById = catchAsync(async (req, res) => {
 
 // ******************************UPDATE A BLOGPOST**************************************
 
-const updateBlogPostById = catchAsync(async (req, res) => {
-  const { id } = req.params;
+const updateBlogPostById = catchAsync(async (req, res, next) => {
+  const id = req.params.id;
+  if (!id) return next(new AppError("ID is not present in parameter", 403));
+
   const { title, author, content } = req.body;
-  const blogPost = await BlogPostModel.findByIdAndUpdate(
-    id,
-    { title, author, content },
-    { new: true }
-  );
+
+  const blogPost = await BlogPostModel.findById(id);
+
   if (!blogPost) {
-    res.status(404).json({ message: "Blog post not found" });
+    return next(new AppError("Blog not found", 404));
+  }
+
+  if (req.user.id !== blogPost.user.toString()) {
+    return next(
+      new AppError("You are not authorized to update this post", 401)
+    );
+  }
+
+  const updated = await blogPost.updateOne(title, author, content);
+  if (updated) {
+    res.status(201).json({
+      msg: "Blog Updated Successfully",
+    });
   } else {
-    res.status(200).json(blogPost);
+    return next(new AppError("Something went wrong", 500));
   }
 });
 
 //******************************** DELETE A BLOGPOST***************************************
 
-const deleteBlogPostById = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const blogPost = await BlogPostModel.findByIdAndDelete(id);
+const deleteBlogPostById = catchAsync(async (req, res, next) => {
+  const id = req.params.id;
+  if (!id) return next(new AppError("ID is not present in parameter", 403));
+
+  const blogPost = await BlogPostModel.findById(id);
+
   if (!blogPost) {
-    res.status(404).json({ message: "Blog post not found" });
+    return next(new AppError("Blog not found", 404));
+  }
+
+  if (req.user.id !== blogPost.user.toString()) {
+    return next(
+      new AppError("You are not authorized to update this post", 401)
+    );
+  }
+
+  const updated = await blogPost.deleteOne(title, author, content);
+  if (updated) {
+    // TODO delete like and dislike of this particular blog
+    res.status(201).json({
+      msg: "Blog Updated Successfully",
+    });
   } else {
-    res.status(204).json({ message: "Blog post deleted" });
+    return next(new AppError("Something went wrong", 500));
   }
 });
 
 // ************************************ GET POSTS BY TOPIC *****************************************
 
-// const getPostsByTopic = catchAsync(async (req, res, next) => {
-//   const { topic } = req.params;
-//   const posts = await BlogPostModel.find({ topics: topic });
-//   res.status(200).json(posts);
-// });
+const getPostsByTopic = catchAsync(async (req, res, next) => {
+  const id = req.params.id;
+  if (!id) return next(new AppError("ID is not present in parameter", 403));
+
+  const posts = await BlogPostModel.find({ _id: id });
+  if (!posts) return next(new AppError("Blog not found", 404));
+  
+  res.status(200).json(posts);
+});
 
 //************************************* GET MOST RECENT BLOGPOST *********************************
 
 const getMostRecentBlogPost = catchAsync(async (req, res, next) => {
-  console.log("Jai Hind");
-});
+  const temp = await BlogPostModel.find().sort({ createdAt: -1 }).limit(1);
 
-// ##################################################################################################################
-// MARE RECENT BLOG POST JOIE CHE MAIN TIMESTAMP PRAMANE SET KARYU PAN MANE POSTMAN MA BTADE CHE BLOGPOST NOT FOUND**
-// ******************************************************************************************************************
+  res.status(200).json(temp);
+});
 
 module.exports = {
   createBlogPost,
@@ -82,5 +122,6 @@ module.exports = {
   deleteBlogPostById,
   getAllBlogPosts,
   getBlogPostById,
+  getPostsByTopic,
   getMostRecentBlogPost,
 };

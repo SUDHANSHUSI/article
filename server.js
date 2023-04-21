@@ -1,6 +1,5 @@
 const express = require("express");
-const mongoose = require("mongoose");
-const dotenv = require("dotenv");
+require("dotenv").config();
 const PORT = process.env.PORT || 8000;
 const app = express();
 const AppError = require("./utils/appError");
@@ -8,23 +7,13 @@ const blogRoutes = require("./routes/blogRoutes");
 const userRoutes = require("./routes/userRoutes");
 const topicRoutes = require("./routes/topicRoutes");
 const errorFormatter = require("./ErrorHandler/errorFormatter");
-const temp = require("./Middleware/temp");
-
-dotenv.config();
-
-mongoose
-  .connect(process.env.DB_CONNECT, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("Database connection successfull..."))
-  .catch((err) => console.log(err));
+const dbConnect = require("./Config/dbConnect");
 
 // Parse JSON request body
 app.use(express.json());
 
+dbConnect();
 // Use article routes
-app.use("/temp", temp);
 app.use("/blogs", blogRoutes);
 app.use("/users", userRoutes);
 app.use("/topics", topicRoutes);

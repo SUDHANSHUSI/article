@@ -11,16 +11,14 @@ const TopicSchema = new Schema(
       type: String,
       required: true,
     },
-    posts: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "BlogPost",
-      },
-    ],
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
   },
   { timestamps: true }
 );
 
-const TopicModel = mongoose.model("Topic", TopicSchema);
+const TopicModel = new mongoose.model("Topic", TopicSchema);
 
 module.exports = TopicModel;

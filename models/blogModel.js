@@ -10,13 +10,17 @@ const BlogPostSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    date: {
-      type: Date,
-      default: Date.now,
+    blogTopic: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Topic",
     },
     content: {
       type: String,
       required: true,
+    },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
     },
   },
   { timestamps: true }

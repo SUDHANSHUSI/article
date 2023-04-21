@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
+const bcrypt = require("bcryptjs");
 
 // ***********************SIGN TOKEN****************************
 
@@ -23,11 +24,12 @@ const createSendToken = (user, statusCode, res) => {
 // ********************SIGNING UP USER***********************
 
 exports.signup = catchAsync(async (req, res, next) => {
+  const { name, email, password } = req.body;
+
   const newUser = await User.create({
-    name: req.body.name,
-    email: req.body.email,
-    password: req.body.password,
-    passwordConfirm: req.body.passwordconfirm,
+    name,
+    email,
+    password,
   });
   createSendToken(newUser, 201, res);
 });
@@ -47,7 +49,9 @@ exports.login = catchAsync(async (req, res, next) => {
 
   const user = await User.findOne({ email }).select("+password");
 
-  if (!user || !(await user.correctPassword(password, user.password))) {
+  const pass = await bcrypt.compare(password, user.password);
+
+  if (!user || !pass) {
     return next(new AppError("Incorrect email or password", 401));
   }
 
@@ -57,7 +61,6 @@ exports.login = catchAsync(async (req, res, next) => {
 });
 
 exports.protect = catchAsync(async (req, res, next) => {
-
   //  1)************ Getting token and check if it's there*************
   let token;
   if (
@@ -76,7 +79,6 @@ exports.protect = catchAsync(async (req, res, next) => {
   // 2)******************verification token************************
 
   const decode = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
-  console.log(decode);
 
   // 3)************check if user still exists******************
 
