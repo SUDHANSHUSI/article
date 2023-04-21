@@ -1,11 +1,12 @@
 const express = require("express");
+const router = express.Router();
 const topicController = require("../Controllers/topicController");
-// const topicMiddleware = require('./../middleware/topicMiddleware');
 const authController = require("../Controllers/authController");
 
-const router = express.Router();
-// router.use(authController.protect);
-router.post("/", authController.protect, topicController.createTopic);
-router.get("/", authController.protect, topicController.getAllTopics);
+// GET all topics
+router.get("/topics", topicController.getAllTopics);
+
+// CREATE a new topic
+router.post("/topics", authController.protect, topicController.createTopic);
 
 module.exports = router;

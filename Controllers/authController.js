@@ -3,7 +3,9 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
+
 // ***********************SIGN TOKEN****************************
+
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN,
@@ -14,13 +16,12 @@ const createSendToken = (user, statusCode, res) => {
   res.status(statusCode).json({
     status: "success",
     token,
-    data: {
-      user,
-    },
+    user,
   });
 };
 
 // ********************SIGNING UP USER***********************
+
 exports.signup = catchAsync(async (req, res, next) => {
   const newUser = await User.create({
     name: req.body.name,
@@ -32,14 +33,12 @@ exports.signup = catchAsync(async (req, res, next) => {
 });
 
 // ********************LOGGING IN USER ************************
+
 exports.login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
-  //     const email = req.body.email;
-  //     const password= req.body.password
 
   // 1)**********check if email and password exist**************
 
-  // console.log(email+" "+password);
   if (!email || !password) {
     return next(new AppError("please provide email and password!", 400));
   }
@@ -52,11 +51,13 @@ exports.login = catchAsync(async (req, res, next) => {
     return next(new AppError("Incorrect email or password", 401));
   }
 
-  // 3)*********if everything is okay ,send token to the client********
+  // 3)*********if everything is okay ,send token to the client*******************
+
   createSendToken(user, 200, res);
 });
 
 exports.protect = catchAsync(async (req, res, next) => {
+
   //  1)************ Getting token and check if it's there*************
   let token;
   if (
@@ -65,7 +66,6 @@ exports.protect = catchAsync(async (req, res, next) => {
   ) {
     token = req.headers.authorization.split(" ")[1];
   }
-  //   console.log(token);
 
   if (!token) {
     return next(
@@ -74,10 +74,12 @@ exports.protect = catchAsync(async (req, res, next) => {
   }
 
   // 2)******************verification token************************
+
   const decode = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
   console.log(decode);
 
   // 3)************check if user still exists******************
+
   const currentUser = await User.findById(decode.id);
   if (!currentUser) {
     return next(
@@ -86,7 +88,5 @@ exports.protect = catchAsync(async (req, res, next) => {
   }
   // grant access to protected routes
   req.user = currentUser;
-  
-    console.log(req.user);
   next();
 });

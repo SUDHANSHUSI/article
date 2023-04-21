@@ -1,23 +1,26 @@
 const mongoose = require("mongoose");
+const Schema = mongoose.Schema;
 
-const topicSchema = new mongoose.Schema(
+const TopicSchema = new Schema(
   {
-    topicName: {
+    name: {
       type: String,
-      required: [true, "Topic name is required."],
-      unique: true,
+      required: true,
     },
-    userId: {
-      type: mongoose.Schema.ObjectId,
-      ref: "User",
-      required: [true, "User id is required."],
+    description: {
+      type: String,
+      required: true,
     },
+    posts: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "BlogPost",
+      },
+    ],
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-const Topic = mongoose.model("topic", topicSchema);
+const TopicModel = mongoose.model("Topic", TopicSchema);
 
-module.exports = Topic;
+module.exports = TopicModel;

@@ -1,12 +1,15 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
-const PORT = process.env.PORT || 9276;
+const PORT = process.env.PORT || 8000;
 const app = express();
 const AppError = require("./utils/appError");
-const articleRoutes = require("./routes/articleRoutes");
+const blogRoutes = require("./routes/blogRoutes");
 const userRoutes = require("./routes/userRoutes");
 const topicRoutes = require("./routes/topicRoutes");
+const errorFormatter = require("./ErrorHandler/errorFormatter");
+const temp = require("./Middleware/temp");
+
 dotenv.config();
 
 mongoose
@@ -21,14 +24,19 @@ mongoose
 app.use(express.json());
 
 // Use article routes
-app.use("/articles", articleRoutes);
+app.use("/temp", temp);
+app.use("/blogs", blogRoutes);
+app.use("/users", userRoutes);
 app.use("/topics", topicRoutes);
-app.use("/user", userRoutes);
+
+app.all("*", (req, res, next) => {
+  return next(
+    new AppError(`can't find ${req.originalUrl} on this server!`, 404)
+  );
+});
+
+app.use(errorFormatter);
 
 app.listen(PORT, () => {
   console.log(`server is listening on port ${PORT}....`);
-});
-
-app.all("*", (req, res, next) => {
-  next(new AppError(`can't find ${req.originalUrl} on this server!`, 404));
 });
