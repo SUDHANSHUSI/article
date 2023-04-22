@@ -2,17 +2,24 @@ const BlogPostModel = require("../models/blogModel");
 const mongoose = require("mongoose");
 const catchAsync = require("express-async-handler");
 const AppError = require("../utils/appError");
+const TopicModel = require("../models/topicModel");
 
 //******************************CREATE A NEW BLOGPOST******************************
 
 const createBlogPost = catchAsync(async (req, res, next) => {
-  const { title, author, content } = req.body;
+  const { title, author, content, blogTopic } = req.body;
+
+  const topicName = await TopicModel.find({ name: blogTopic });
+  const topicID = topicName[0]._id;
+
   const blogPost = await BlogPostModel.create({
     title,
     author,
+    blogTopic: topicID,
     content,
     user: req.user.id,
   });
+
   res.status(201).json(blogPost);
 });
 
@@ -81,15 +88,15 @@ const deleteBlogPostById = catchAsync(async (req, res, next) => {
 
   if (req.user.id !== blogPost.user.toString()) {
     return next(
-      new AppError("You are not authorized to update this post", 401)
+      new AppError("You are not authorized to delete this post", 401)
     );
   }
 
-  const updated = await blogPost.deleteOne(title, author, content);
-  if (updated) {
-    // TODO delete like and dislike of this particular blog
+  const deleted = await blogPost.deleteOne(title, author, content);
+  if (deleted) {
+    // TODO delete like and dislike and comment of this particular blog
     res.status(201).json({
-      msg: "Blog Updated Successfully",
+      msg: "Blog Deleted Successfully",
     });
   } else {
     return next(new AppError("Something went wrong", 500));
@@ -102,9 +109,9 @@ const getPostsByTopic = catchAsync(async (req, res, next) => {
   const id = req.params.id;
   if (!id) return next(new AppError("ID is not present in parameter", 403));
 
-  const posts = await BlogPostModel.find({ _id: id });
+  const posts = await BlogPostModel.find({ blogTopic: id });
   if (!posts) return next(new AppError("Blog not found", 404));
-  
+
   res.status(200).json(posts);
 });
 

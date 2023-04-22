@@ -4,39 +4,38 @@ const authController = require("../Controllers/authController");
 const blogDetailValidation = require("../Middleware/blogDetailValidation");
 
 const router = express.Router();
+// ***********************GET MOST RECENT BLOGPOST***********************
 
 router.get(
   "/getMostRecentBlog",
   authController.protect,
-  blogDetailValidation,
   blogController.getMostRecentBlogPost
 );
-// GET all blogs
+// *****************************GET ALL BLOGS***************************
 router.get(
   "/getAllBlogs",
   authController.protect,
   blogController.getAllBlogPosts
 );
 
-// CREATE a new blog
-router.post("/create", authController.protect, blogController.createBlogPost);
-
-// GET blog by ID
-router.get("/:id", authController.protect, blogController.getBlogPostById);
-
-// UPDATE blog
-router.patch("/:id", authController.protect, blogController.updateBlogPostById);
-
-// DELETE blog
-router.delete(
-  "/:id",
+// **********************************CREATE A NEW BLOG********************
+router.post(
+  "/create",
   authController.protect,
-  blogController.deleteBlogPostById
+  blogDetailValidation,
+  blogController.createBlogPost
 );
 
-// GET Post by topic
+//*************************************************************
+router
+  .route("/:id")
+  .get(authController.protect, blogController.getBlogPostById)
+  .patch(authController.protect, blogController.updateBlogPostById)
+  .delete(authController.protect, blogController.deleteBlogPostById);
 
-router.get("/topics/:topic", blogController.getPostsByTopic);
+//****************************GTE POST BY TOPIC*******************
+
+router.get("/topics/:id", blogController.getPostsByTopic);
 
 // GET most recent blog post,
 

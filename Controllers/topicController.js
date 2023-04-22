@@ -2,8 +2,9 @@ const topicModel = require("../models/topicModel");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 
-// CREATE TOPIC
-exports.createTopic = catchAsync(async (req, res, next) => {
+//**************************************CREATE TOPIC*************************************/ 
+
+const createTopic = catchAsync(async (req, res, next) => {
   const { name, description } = req.body;
 
   if (!name || !description)
@@ -18,8 +19,14 @@ exports.createTopic = catchAsync(async (req, res, next) => {
   res.status(201).json(topic);
 });
 
-// GET ALL TOPICS
-exports.getAllTopics = catchAsync(async (req, res, next) => {
+//***************************************GET ALL TOPICS***************************************/
+
+const getAllTopics = catchAsync(async (req, res, next) => {
   const topics = await topicModel.find();
   res.json(topics);
 });
+
+module.exports = {
+  createTopic,
+  getAllTopics,
+};

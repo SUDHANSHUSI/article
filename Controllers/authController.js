@@ -23,7 +23,7 @@ const createSendToken = (user, statusCode, res) => {
 
 // ********************SIGNING UP USER***********************
 
-exports.signup = catchAsync(async (req, res, next) => {
+const signup = catchAsync(async (req, res, next) => {
   const { name, email, password } = req.body;
 
   const newUser = await User.create({
@@ -36,7 +36,7 @@ exports.signup = catchAsync(async (req, res, next) => {
 
 // ********************LOGGING IN USER ************************
 
-exports.login = catchAsync(async (req, res, next) => {
+const login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
   // 1)**********check if email and password exist**************
@@ -60,7 +60,7 @@ exports.login = catchAsync(async (req, res, next) => {
   createSendToken(user, 200, res);
 });
 
-exports.protect = catchAsync(async (req, res, next) => {
+const protect = catchAsync(async (req, res, next) => {
   //  1)************ Getting token and check if it's there*************
   let token;
   if (
@@ -92,3 +92,9 @@ exports.protect = catchAsync(async (req, res, next) => {
   req.user = currentUser;
   next();
 });
+
+module.exports = {
+  signup,
+  login,
+  protect,
+};

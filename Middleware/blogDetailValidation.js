@@ -1,14 +1,16 @@
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
+const TopicModel = require("../models/topicModel");
 
 const blogDetailValidation = catchAsync(async (req, res, next) => {
-  const { title, author, content } = req.body;
+  const { title, author, content, blogTopic } = req.body;
 
   let missingValues = [];
 
   if (!title) missingValues.push("Title ");
   if (!author) missingValues.push("Author ");
   if (!content) missingValues.push("Content ");
+  if (!blogTopic) missingValues.push("blogTopic ");
 
   if (missingValues.length > 0) {
     return next(
@@ -18,6 +20,11 @@ const blogDetailValidation = catchAsync(async (req, res, next) => {
       )
     );
   }
+
+  const topicName = await TopicModel.find({ name: req.body.blogTopic });
+  console.log(topicName);
+  if (topicName.length == 0)
+    return next(new AppError("Topic Name does not exist", 403));
 
   next();
 });

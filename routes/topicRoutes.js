@@ -3,10 +3,10 @@ const router = express.Router();
 const topicController = require("../Controllers/topicController");
 const authController = require("../Controllers/authController");
 
-// GET all topics
-router.get("/topics", topicController.getAllTopics);
+//  ****************************GET ALL TOPICS************************
+router.get("/getAllTopics", topicController.getAllTopics);
 
-// CREATE a new topic
-router.post("/topics", authController.protect, topicController.createTopic);
+// ******************************CREATE TOPICS**************************
+router.post("/createTopic", authController.protect, topicController.createTopic);
 
 module.exports = router;
