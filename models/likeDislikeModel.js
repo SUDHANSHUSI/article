@@ -20,6 +20,15 @@ const likeDislikeSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+likeDislikeSchema.virtual("likeCount", {
+  ref: "LikeDislike",
+  localField: "blog",
+  foreignField: "blog",
+  count: true,
+  match: { like: true },
+});
+
+
 const LikeDislike = new mongoose.model("LikeDislike", likeDislikeSchema);
 
 module.exports = LikeDislike;

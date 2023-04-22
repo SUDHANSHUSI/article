@@ -3,14 +3,15 @@ const authController = require("../Controllers/authController");
 const likeDislikeController = require("../Controllers/likeDislikeController");
 
 const router = express.Router();
-
+// ***************************GET MOST LIKED POSTS*********************
+router.get("/most-liked", likeDislikeController.getMostLikedPosts);
 
 //**************************GET ALL LIKES*********************************
 
-router.get('/likes', likeDislikeController.getAllLikes);
+router.get("/likes", likeDislikeController.getAllLikes);
 
 //***************************GET ALL DISLIKES******************************
-router.get('/dislikes', likeDislikeController.getAllDislikes);
+router.get("/dislikes", likeDislikeController.getAllDislikes);
 
 // ****************************LIKE A PARTICULAR BLOG*********************
 router
