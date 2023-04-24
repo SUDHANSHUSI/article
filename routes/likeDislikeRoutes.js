@@ -3,9 +3,6 @@ const authController = require("../Controllers/authController");
 const likeDislikeController = require("../Controllers/likeDislikeController");
 
 const router = express.Router();
-// ***************************GET MOST LIKED POSTS*********************
-router.get("/most-liked", likeDislikeController.getMostLikedPosts);
-
 //**************************GET ALL LIKES*********************************
 
 router.get("/likes", likeDislikeController.getAllLikes);

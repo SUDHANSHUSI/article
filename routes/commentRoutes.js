@@ -6,13 +6,12 @@ const commentController = require("../Controllers/commentController");
 
 const router = express.Router();
 
-router.route("/getCreate").get(commentController.getAllComments);
+router.route("/getAllComments").get(commentController.getAllComments);
 
 router
   .route("/:id")
   .post(authController.protect, commentController.createComment)
   .get(authController.protect, commentController.getCommentById)
-  .patch(authController.protect, commentController.updateComment)
   .delete(authController.protect, commentController.deleteComment);
 
 module.exports = router;

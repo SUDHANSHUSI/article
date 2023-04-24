@@ -28,9 +28,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       require: [true, "pls confirm your password "],
       validate: {
-        //  this only works on create and save!!!!
-
-        validator: function (el) {
+          validator: function (el) {
           return el === this.password;
         },
         message: "passwords are not matching",
@@ -41,15 +39,9 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.pre("save", async function (next) 
-{
-  // only run this function if  password was actually modififed
+{ 
   if (!this.isModified("password")) return next();
-
-  //   hash the password with the cost of 12
-      // console.log("hello");
   this.password = await bcrypt.hash(this.password, 12);
-
-  // delete password confirm field
     this.passwordConfirm = undefined;
   next();
 });

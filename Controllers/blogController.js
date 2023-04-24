@@ -3,6 +3,8 @@ const mongoose = require("mongoose");
 const catchAsync = require("express-async-handler");
 const AppError = require("../utils/appError");
 const TopicModel = require("../models/topicModel");
+const Comment = require("../models/commentModel");
+const LikeDislike = require("../models/likeDislikeModel");
 
 //******************************CREATE A NEW BLOGPOST******************************
 
@@ -27,10 +29,13 @@ const createBlogPost = catchAsync(async (req, res, next) => {
 
 const getAllBlogPosts = catchAsync(async (req, res, next) => {
   const blogPosts = await BlogPostModel.find();
-  res.status(200).json(blogPosts);
+  res.status(200).json({
+    numberOfBlogs: blogPosts.length,
+    blogPosts,
+  });
 });
 
-// *******************************GET A BLOGPOST BY ID*******************************
+// *******************************GET A BLOGPOST BY ID********************************
 const getBlogPostById = catchAsync(async (req, res, next) => {
   const id = req.params.id;
   if (!id) return next(new AppError("ID is not present in parameter", 403));
@@ -63,11 +68,22 @@ const updateBlogPostById = catchAsync(async (req, res, next) => {
       new AppError("You are not authorized to update this post", 401)
     );
   }
+  console.log(blogPost);
 
-  const updated = await blogPost.updateOne(title, author, content);
+  const updated = await BlogPostModel.findByIdAndUpdate(
+    id,
+    { title, author, content },
+    {
+      new: true,
+    }
+  );
+  // comment kem update karvi che pan??
+  // definition ma given che?
+  // ha la nai  nahi karvu
   if (updated) {
     res.status(201).json({
       msg: "Blog Updated Successfully",
+      updated,
     });
   } else {
     return next(new AppError("Something went wrong", 500));
@@ -92,9 +108,11 @@ const deleteBlogPostById = catchAsync(async (req, res, next) => {
     );
   }
 
-  const deleted = await blogPost.deleteOne(title, author, content);
+  await LikeDislike.deleteMany({ blogPost: id });
+  await Comment.deleteMany({ blogPost: id });
+
+  const deleted = await BlogPostModel.findByIdAndDelete(id);
   if (deleted) {
-    // TODO delete like and dislike and comment of this particular blog
     res.status(201).json({
       msg: "Blog Deleted Successfully",
     });
@@ -123,6 +141,54 @@ const getMostRecentBlogPost = catchAsync(async (req, res, next) => {
   res.status(200).json(temp);
 });
 
+// *************************************GET MOST LIKED BLOGS*****************************************
+const getMostLikedBlog = catchAsync(async (req, res, next) => {
+  const query = req.query.limit || 1;
+  if (isNaN(query)) return next(new AppError("Query must be a Number"));
+
+  const temp = await LikeDislike.aggregate([
+    {
+      $group: {
+        _id: "$blog",
+        count: { $sum: 1 }, // counting no. of documents pass
+      },
+    },
+    {
+      $sort: { count: -1 },
+    },
+    {
+      $limit: +query,
+    },
+    {
+      $lookup: {
+        from: "blogposts",
+        localField: "_id",
+        foreignField: "_id",
+        as: "blog",
+      },
+    },
+    {
+      // seperate from array
+      $unwind: "$blog",
+    },
+    {
+      $project: {
+        _id: "$blog._id",
+        total_likes: "$count",
+        title: "$blog.title",
+      },
+    },
+  ]).exec();
+
+  if (temp) {
+    res.json({
+      output: temp,
+    });
+  } else {
+    return next(new AppError("Something went wrong", 500));
+  }
+});
+
 module.exports = {
   createBlogPost,
   updateBlogPostById,
@@ -130,5 +196,6 @@ module.exports = {
   getAllBlogPosts,
   getBlogPostById,
   getPostsByTopic,
+  getMostLikedBlog,
   getMostRecentBlogPost,
 };

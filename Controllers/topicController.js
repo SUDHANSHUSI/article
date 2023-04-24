@@ -2,7 +2,7 @@ const topicModel = require("../models/topicModel");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 
-//**************************************CREATE TOPIC*************************************/ 
+//**************************************CREATE TOPIC*************************************/
 
 const createTopic = catchAsync(async (req, res, next) => {
   const { name, description } = req.body;
@@ -23,7 +23,10 @@ const createTopic = catchAsync(async (req, res, next) => {
 
 const getAllTopics = catchAsync(async (req, res, next) => {
   const topics = await topicModel.find();
-  res.json(topics);
+  res.status(200).json({
+    numberOfTopics: topics.length,
+    topics,
+  });
 });
 
 module.exports = {

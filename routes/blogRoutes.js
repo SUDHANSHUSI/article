@@ -11,12 +11,18 @@ router.get(
   authController.protect,
   blogController.getMostRecentBlogPost
 );
-// *****************************GET ALL BLOGS***************************
+
+// *************************GET MOST LIKED POSTS**************************
+router.get("/mostLiked", blogController.getMostLikedBlog);
+
+
+// *****************************GET ALL BLOGS*****************************
 router.get(
   "/getAllBlogs",
   authController.protect,
   blogController.getAllBlogPosts
 );
+
 
 // **********************************CREATE A NEW BLOG********************
 router.post(
@@ -26,17 +32,17 @@ router.post(
   blogController.createBlogPost
 );
 
-//*************************************************************
+
+//*************************************************************************
 router
   .route("/:id")
   .get(authController.protect, blogController.getBlogPostById)
   .patch(authController.protect, blogController.updateBlogPostById)
   .delete(authController.protect, blogController.deleteBlogPostById);
 
-//****************************GTE POST BY TOPIC*******************
+
+//****************************GET POST BY TOPIC*****************************
 
 router.get("/topics/:id", blogController.getPostsByTopic);
-
-// GET most recent blog post,
 
 module.exports = router;

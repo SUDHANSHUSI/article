@@ -97,68 +97,16 @@ const getAllLikes = catchAsync(async (req, res, next) => {
       strictPopulate: false,
     });
 
-  console.log(likes);
-
   res.status(200).json({
     status: "success",
-    results: likes.length,
+    numberOfLikes: likes.length,
     data: {
       likes,
     },
   });
 });
 
-// Get most liked posts
-const getMostLikedPosts = catchAsync(async (req, res, next) => {
-  const likes = await LikeDislike.aggregate([
-    {
-         $match:             // filter only likes
-         {
-            like: true
-         }
-     }, 
-    { 
-        $group:         // group by blog and count the number of likes
-         { 
-            _id: "$blog", count: { $sum: 1 }
-         } 
-    }, 
-    { 
-        $sort:               // sort by count in descending order
-         {
-             count: -1 
-            } 
-    }, 
-    { 
-        $limit: 10         // limit to the top 10 most liked posts
-     },
-    { 
-        $lookup:        // join with blogs collection to get blog details
-        { 
-            from: "blogs", localField: "_id", foreignField: "_id", as: "blog" 
-    }
- },
-    {
-         $unwind: "$blog"       // destructure the blog array
-        },
-    { 
-        $project:            // select only the required fields   
-         {
-             _id: "$blog._id", title: "$blog.title", likes: "$count" 
-            } 
-        }, 
-  ]);
-
-  res.status(200).json({
-    status: "success",
-    results: likes.length,
-    data: {
-      likes,
-    },
-  });
-});
-
-//************************************************GET ALL DISLIKES**************************************/
+//********************************************GET ALL DISLIKES*****************************************
 
 const getAllDislikes = catchAsync(async (req, res, next) => {
   const dislikes = await LikeDislike.find({ like: false })
@@ -175,7 +123,7 @@ const getAllDislikes = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     status: "success",
-    results: dislikes.length,
+    numberOfDislikes: dislikes.length,
     data: {
       dislikes,
     },
@@ -187,5 +135,4 @@ module.exports = {
   getAllDislikes,
   likeBlog,
   dislikeBlog,
-  getMostLikedPosts,
 };
