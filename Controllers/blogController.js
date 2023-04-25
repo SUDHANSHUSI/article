@@ -8,22 +8,31 @@ const LikeDislike = require("../models/likeDislikeModel");
 
 //******************************CREATE A NEW BLOGPOST******************************
 
-const createBlogPost = catchAsync(async (req, res, next) => {
-  const { title, author, content, blogTopic } = req.body;
+const createBlogPost = catchAsync(
+  async (req, res, next) => {
+    const { title, author, content, blogTopic } = req.body;
 
-  const topicName = await TopicModel.find({ name: blogTopic });
-  const topicID = topicName[0]._id;
+    const topicName = await TopicModel.find({ name: blogTopic });
+    const topicID = topicName[0]._id;
 
-  const blogPost = await BlogPostModel.create({
-    title,
-    author,
-    blogTopic: topicID,
-    content,
-    user: req.user.id,
-  });
+    const blogPost = await BlogPostModel.create({
+      title,
+      author,
+      blogTopic: topicID,
+      content,
+      user: req.user.id,
+    });
 
-  res.status(201).json(blogPost);
-});
+    res.status(201).json(blogPost);
+  },
+  (error) => {
+    if (error.code === 11000) {
+      return res.status(400).json({ error: "Blog post title must be unique" });
+    }
+
+    res.status(500).json({ error: "Failed to create blog post" });
+  }
+);
 
 //*****************************GET ALL BLOGPOSTS************************************
 
@@ -38,7 +47,6 @@ const getAllBlogPosts = catchAsync(async (req, res, next) => {
 // *******************************GET A BLOGPOST BY ID********************************
 const getBlogPostById = catchAsync(async (req, res, next) => {
   const id = req.params.id;
-  if (!id) return next(new AppError("ID is not present in parameter", 403));
 
   const blogPost = await BlogPostModel.findById(id);
 
@@ -53,9 +61,16 @@ const getBlogPostById = catchAsync(async (req, res, next) => {
 
 const updateBlogPostById = catchAsync(async (req, res, next) => {
   const id = req.params.id;
-  if (!id) return next(new AppError("ID is not present in parameter", 403));
+
+  // pattern not match error handling
 
   const { title, author, content } = req.body;
+  const titleRegex = /^[a-zA-Z0-9\s]*$/;
+  if (!titleRegex.test(req.body.title)) {
+    return res.status(400).json({
+      error: "Title should only contain alphanumeric characters and spaces",
+    });
+  }
 
   const blogPost = await BlogPostModel.findById(id);
 
@@ -68,7 +83,6 @@ const updateBlogPostById = catchAsync(async (req, res, next) => {
       new AppError("You are not authorized to update this post", 401)
     );
   }
-  console.log(blogPost);
 
   const updated = await BlogPostModel.findByIdAndUpdate(
     id,
@@ -77,9 +91,7 @@ const updateBlogPostById = catchAsync(async (req, res, next) => {
       new: true,
     }
   );
-  // comment kem update karvi che pan??
-  // definition ma given che?
-  // ha la nai  nahi karvu
+
   if (updated) {
     res.status(201).json({
       msg: "Blog Updated Successfully",
@@ -107,9 +119,8 @@ const deleteBlogPostById = catchAsync(async (req, res, next) => {
       new AppError("You are not authorized to delete this post", 401)
     );
   }
-
-  await LikeDislike.deleteMany({ blogPost: id });
-  await Comment.deleteMany({ blogPost: id });
+  await LikeDislike.deleteMany({ blog: id });
+  await Comment.deleteMany({ blog: id });
 
   const deleted = await BlogPostModel.findByIdAndDelete(id);
   if (deleted) {
@@ -121,7 +132,7 @@ const deleteBlogPostById = catchAsync(async (req, res, next) => {
   }
 });
 
-// ************************************ GET POSTS BY TOPIC *****************************************
+// ************************************ GET POSTS BY TOPIC ***************************************
 
 const getPostsByTopic = catchAsync(async (req, res, next) => {
   const id = req.params.id;
@@ -136,21 +147,37 @@ const getPostsByTopic = catchAsync(async (req, res, next) => {
 //************************************* GET MOST RECENT BLOGPOST *********************************
 
 const getMostRecentBlogPost = catchAsync(async (req, res, next) => {
-  const temp = await BlogPostModel.find().sort({ createdAt: -1 }).limit(1);
 
-  res.status(200).json(temp);
+  const query = req.query.limit || 1;        // for query 
+  if (isNaN(query)) return next(new AppError("Query must be a Number"));
+
+  const mostRecentBlog = await BlogPostModel.find()
+    .sort({ createdAt: -1 })
+    .limit(+query);
+
+  if (mostRecentBlog.length < query) {
+    return next(
+      new AppError(
+        "Limit can't be greater than the total number of signed up users"
+      )
+    );
+  }
+
+  res.status(200).json(mostRecentBlog);
 });
 
 // *************************************GET MOST LIKED BLOGS*****************************************
 const getMostLikedBlog = catchAsync(async (req, res, next) => {
   const query = req.query.limit || 1;
-  if (isNaN(query)) return next(new AppError("Query must be a Number"));
+  if (isNaN(query)) {
+    return next(new AppError("Query must be a Number"));
+  }
 
   const temp = await LikeDislike.aggregate([
     {
       $group: {
         _id: "$blog",
-        count: { $sum: 1 }, // counting no. of documents pass
+        count: { $sum: 1 },
       },
     },
     {
@@ -168,7 +195,6 @@ const getMostLikedBlog = catchAsync(async (req, res, next) => {
       },
     },
     {
-      // seperate from array
       $unwind: "$blog",
     },
     {
@@ -178,15 +204,15 @@ const getMostLikedBlog = catchAsync(async (req, res, next) => {
         title: "$blog.title",
       },
     },
-  ]).exec();
+  ]);
 
-  if (temp) {
-    res.json({
-      output: temp,
-    });
-  } else {
+  if (!temp) {
     return next(new AppError("Something went wrong", 500));
   }
+
+  res.json({
+    output: temp,
+  });
 });
 
 module.exports = {

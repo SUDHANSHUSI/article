@@ -1,6 +1,7 @@
 const express = require("express");
 const authController = require("../Controllers/authController");
 const likeDislikeController = require("../Controllers/likeDislikeController");
+const IDvalidation = require("../Middleware/IDvalidation");
 
 const router = express.Router();
 //**************************GET ALL LIKES*********************************
@@ -8,16 +9,21 @@ const router = express.Router();
 router.get("/likes", likeDislikeController.getAllLikes);
 
 //***************************GET ALL DISLIKES******************************
+
 router.get("/dislikes", likeDislikeController.getAllDislikes);
 
 // ****************************LIKE A PARTICULAR BLOG*********************
 router
-  .route("/:blogId/like")
-  .post(authController.protect, likeDislikeController.likeBlog);
+  .route("/:id?/like")
+  .post(authController.protect, IDvalidation, likeDislikeController.likeBlog);
 
 //   ******************************DISLIKE A PARTICULAR BLOG*****************
 router
-  .route("/:blogId/dislike")
-  .post(authController.protect, likeDislikeController.dislikeBlog);
+  .route("/:id?/dislike")
+  .post(
+    authController.protect,
+    IDvalidation,
+    likeDislikeController.dislikeBlog
+  );
 
 module.exports = router;

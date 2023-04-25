@@ -5,13 +5,13 @@ const AppError = require("../utils/appError");
 // ***************************************LIKE A BLOG***********************************************
 
 const likeBlog = catchAsync(async (req, res, next) => {
-  const { blogId } = req.params;
+  const blogId = req.params.id;
   const { _id: userId } = req.user;
 
   const likeDislike = await LikeDislike.findOne({ blog: blogId, user: userId });
 
   if (likeDislike) {
-    // User already liked or disliked the blog
+    // User already liked the blog 
     if (likeDislike.like) {
       return next(new AppError("You have already liked the blog", 400));
     }
@@ -21,12 +21,12 @@ const likeBlog = catchAsync(async (req, res, next) => {
 
     res.status(200).json({
       status: "success",
-      data: {
+      likes: {
         likeDislike,
       },
     });
   } else {
-    // User did not like or dislike the blog before
+    // User did not like the blog before
     const newLikeDislike = await LikeDislike.create({
       user: userId,
       blog: blogId,
@@ -34,7 +34,7 @@ const likeBlog = catchAsync(async (req, res, next) => {
 
     res.status(201).json({
       status: "success",
-      data: {
+      likes: {
         likeDislike: newLikeDislike,
       },
     });
@@ -44,13 +44,13 @@ const likeBlog = catchAsync(async (req, res, next) => {
 // ************************************DISLIKE A BLOG **********************************************
 
 const dislikeBlog = catchAsync(async (req, res, next) => {
-  const { blogId } = req.params;
+  const blogId = req.params.id;
   const { _id: userId } = req.user;
 
   const likeDislike = await LikeDislike.findOne({ blog: blogId, user: userId });
 
   if (likeDislike) {
-    // User already liked or disliked the blog
+    // User already disliked the blog
 
     if (!likeDislike.like) {
       return next(new AppError("You have already disliked the blog", 400));
@@ -61,12 +61,12 @@ const dislikeBlog = catchAsync(async (req, res, next) => {
 
     res.status(200).json({
       status: "success",
-      data: {
+      likes: {
         likeDislike,
       },
     });
   } else {
-    // User did not like or dislike the blog before
+    // User did not  dislike the blog before
     const newLikeDislike = await LikeDislike.create({
       user: userId,
       blog: blogId,
@@ -75,7 +75,7 @@ const dislikeBlog = catchAsync(async (req, res, next) => {
 
     res.status(201).json({
       status: "success",
-      data: {
+      likes: {
         likeDislike: newLikeDislike,
       },
     });
@@ -85,7 +85,10 @@ const dislikeBlog = catchAsync(async (req, res, next) => {
 // *********************************************GET ALL LIKES ****************************************
 
 const getAllLikes = catchAsync(async (req, res, next) => {
-  const likes = await LikeDislike.find({ like: true })
+  const query = req.query.limit || 1;         // for query
+  if (isNaN(query)) return next(new AppError("Query must be a Number"));
+
+  const likeDetails = await LikeDislike.find({ like: true })
     .populate({
       path: "user",
       select: "name -_id",
@@ -99,16 +102,17 @@ const getAllLikes = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     status: "success",
-    numberOfLikes: likes.length,
-    data: {
-      likes,
-    },
+    numberOfLikes: likeDetails.length,
+    likeDetails,
   });
 });
 
 //********************************************GET ALL DISLIKES*****************************************
 
 const getAllDislikes = catchAsync(async (req, res, next) => {
+  const query = req.query.limit || 1;            //for  query
+  if (isNaN(query)) return next(new AppError("Query must be a Number"));
+
   const dislikes = await LikeDislike.find({ like: false })
     .populate({
       path: "user",
@@ -136,3 +140,5 @@ module.exports = {
   likeBlog,
   dislikeBlog,
 };
+
+

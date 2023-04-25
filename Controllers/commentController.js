@@ -2,6 +2,7 @@ const Comment = require("../models/commentModel");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 const BlogPostModel = require("../models/blogModel");
+const { default: mongoose } = require("mongoose");
 
 // **********************************GET ALL COMMENTS**********************************
 
@@ -23,6 +24,7 @@ const createComment = catchAsync(async (req, res, next) => {
     blog: id,
     author: req.user.id,
   });
+ 
 
   if (newComment) {
     res.status(201).json({
@@ -65,7 +67,7 @@ const deleteComment = catchAsync(async (req, res, next) => {
       new AppError("You are not authorized to delete this post", 401)
     );
   }
-  const deleted  = await Comment.findByIdAndDelete(id);
+  const deleted = await Comment.findByIdAndDelete(id);
 
   if (deleted) {
     res.status(200).json({
