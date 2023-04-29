@@ -55,12 +55,18 @@ const login = catchAsync(async (req, res, next) => {
     return next(new AppError("Incorrect email or password", 401));
   }
 
-  // 3)*********if everything is okay ,send token to the client*******************
+  const token = signToken(user);
 
-  createSendToken(user, 200, res);
+  res.status(200).json({
+    status: "success",
+    _id: user._id,
+    email,
+    token,
+  });
 });
 
 const protect = catchAsync(async (req, res, next) => {
+  
   //  1)************ Getting token and check if it's there*************
   let token;
   if (

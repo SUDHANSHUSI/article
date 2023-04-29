@@ -6,6 +6,7 @@ const TopicSchema = new Schema(
     name: {
       type: String,
       required: true,
+      trim: true,
     },
     description: {
       type: String,
@@ -16,7 +17,11 @@ const TopicSchema = new Schema(
       ref: "User",
     },
   },
-  { timestamps: true }
+  {
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+    timestamps: true,
+  }
 );
 
 const TopicModel = new mongoose.model("Topic", TopicSchema);

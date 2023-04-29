@@ -22,10 +22,9 @@ const blogDetailValidation = catchAsync(async (req, res, next) => {
     );
   }
 
-  const topicName = await TopicModel.find({ name: req.body.blogTopic });
-  // console.log(topicName);
-  if (topicName.length == 0)
-    return next(new AppError("Topic Name does not exist", 403));
+  const topicName = await TopicModel.findById(blogTopic);
+  console.log(topicName);
+  if (!topicName) return next(new AppError("Topic Name does not exist", 403));
 
   const blogName = await BlogPostModel.find({ title });
   // console.log(blogName);
@@ -34,6 +33,5 @@ const blogDetailValidation = catchAsync(async (req, res, next) => {
 
   next();
 });
-
 
 module.exports = blogDetailValidation;

@@ -27,7 +27,7 @@ const createBlogPost = catchAsync(
   },
   (error) => {
     if (error.code === 11000) {
-      return res.status(400).json({ error: "Blog post title must be unique" });
+      return next(new AppError("Blog Title must be unique", 403));
     }
 
     res.status(500).json({ error: "Failed to create blog post" });
@@ -64,7 +64,7 @@ const updateBlogPostById = catchAsync(async (req, res, next) => {
 
   // pattern not match error handling
 
-  const { title, author, content } = req.body;
+  const { title, author, content, topic } = req.body;
   const titleRegex = /^[a-zA-Z0-9\s]*$/;
   if (!titleRegex.test(req.body.title)) {
     return res.status(400).json({
@@ -72,7 +72,7 @@ const updateBlogPostById = catchAsync(async (req, res, next) => {
     });
   }
 
-  const blogPost = await BlogPostModel.findById(id);
+  const blogPost = await BlogPostModel.findById(id).populate("topicName");
 
   if (!blogPost) {
     return next(new AppError("Blog not found", 404));
@@ -89,13 +89,33 @@ const updateBlogPostById = catchAsync(async (req, res, next) => {
     { title, author, content },
     {
       new: true,
+      populate: {
+        path: "topicName",
+        select: "name -_id",
+      },
     }
   );
+
+  const temp = [
+    {
+      ...updated.toJSON(),
+      topic: updated.topicName,
+    },
+  ];
+  // console.log(temp);
+
+  const updatedBlog = temp.map((blog) => {
+    const { blogTopic, topic, ...rest } = blog;
+    return {
+      ...rest,
+      blogTopic: topic.name,
+    };
+  });
 
   if (updated) {
     res.status(201).json({
       msg: "Blog Updated Successfully",
-      updated,
+      updatedBlog,
     });
   } else {
     return next(new AppError("Something went wrong", 500));
@@ -139,7 +159,8 @@ const getPostsByTopic = catchAsync(async (req, res, next) => {
   if (!id) return next(new AppError("ID is not present in parameter", 403));
 
   const posts = await BlogPostModel.find({ blogTopic: id });
-  if (!posts) return next(new AppError("Blog not found", 404));
+  if (!posts || posts.length === 0)
+    return next(new AppError("Blog Not Found For Requested Topic", 404));
 
   res.status(200).json(posts);
 });
@@ -147,8 +168,7 @@ const getPostsByTopic = catchAsync(async (req, res, next) => {
 //************************************* GET MOST RECENT BLOGPOST *********************************
 
 const getMostRecentBlogPost = catchAsync(async (req, res, next) => {
-
-  const query = req.query.limit || 1;        // for query 
+  const query = req.query.limit || 1; // for query
   if (isNaN(query)) return next(new AppError("Query must be a Number"));
 
   const mostRecentBlog = await BlogPostModel.find()

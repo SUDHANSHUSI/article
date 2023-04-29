@@ -5,6 +5,7 @@ const BlogPostSchema = new mongoose.Schema(
     title: {
       type: String,
       required: true,
+      trim: true,
     },
     author: {
       type: String,
@@ -25,6 +26,14 @@ const BlogPostSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+BlogPostSchema.virtual("topicName", {
+  ref: "Topic",
+  localField: "blogTopic",
+  foreignField: "_id",
+  justOne: true,
+  select: "name",
+});
 
 const BlogPostModel = new mongoose.model("BlogPost", BlogPostSchema);
 
