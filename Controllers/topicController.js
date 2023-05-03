@@ -1,3 +1,4 @@
+const TopicModel = require("../models/topicModel");
 const topicModel = require("../models/topicModel");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
@@ -29,7 +30,26 @@ const getAllTopics = catchAsync(async (req, res, next) => {
   });
 });
 
+
+
+//**************************************DELETE TOPIC*************************************/
+const deleteTopicById = catchAsync(async (req, res, next) => {
+  const  id  = req.params.id;
+
+  
+  const topic = await TopicModel.findByIdAndDelete(id);
+
+  if (topic) {
+    res.status(201).json({
+      msg: "Topic Deleted Successfully",
+    });
+  } else {
+    return next(new AppError("Something went wrong", 500));
+  }
+});
+
 module.exports = {
   createTopic,
   getAllTopics,
+  deleteTopicById
 };

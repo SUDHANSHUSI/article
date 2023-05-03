@@ -12,18 +12,27 @@ const createBlogPost = catchAsync(
   async (req, res, next) => {
     const { title, author, content, blogTopic } = req.body;
 
-    const topicName = await TopicModel.find({ name: blogTopic });
-    const topicID = topicName[0]._id;
+    const topic = await TopicModel.findById(blogTopic);
+
+    const topicName = topic.name;
 
     const blogPost = await BlogPostModel.create({
       title,
       author,
-      blogTopic: topicID,
+      blogTopic,
       content,
       user: req.user.id,
     });
 
-    res.status(201).json(blogPost);
+    res.status(201).json({
+      _id: blogPost._id,
+      title,
+      author,
+      blogTopicID: topic._id,
+      blogTopic: topicName,
+      content,
+      user: req.user.id,
+    });
   },
   (error) => {
     if (error.code === 11000) {
@@ -35,20 +44,22 @@ const createBlogPost = catchAsync(
 );
 
 //*****************************GET ALL BLOGPOSTS************************************
-
 const getAllBlogPosts = catchAsync(async (req, res, next) => {
-  const blogPosts = await BlogPostModel.find();
+  const blogPosts = await BlogPostModel.find()
+    .populate("blogTopic", "name")
+    .lean();
   res.status(200).json({
     numberOfBlogs: blogPosts.length,
     blogPosts,
   });
 });
-
 // *******************************GET A BLOGPOST BY ID********************************
 const getBlogPostById = catchAsync(async (req, res, next) => {
   const id = req.params.id;
 
-  const blogPost = await BlogPostModel.findById(id);
+  const blogPost = await BlogPostModel.findById(id)
+    .populate("blogTopic", "name")
+    .lean();
 
   if (!blogPost) {
     res.status(404).json({ message: "Blog post not found" });
@@ -62,9 +73,10 @@ const getBlogPostById = catchAsync(async (req, res, next) => {
 const updateBlogPostById = catchAsync(async (req, res, next) => {
   const id = req.params.id;
 
+  const { title, author, content, blogTopic } = req.body;
+
   // pattern not match error handling
 
-  const { title, author, content, topic } = req.body;
   const titleRegex = /^[a-zA-Z0-9\s]*$/;
   if (!titleRegex.test(req.body.title)) {
     return res.status(400).json({
@@ -72,7 +84,9 @@ const updateBlogPostById = catchAsync(async (req, res, next) => {
     });
   }
 
-  const blogPost = await BlogPostModel.findById(id).populate("topicName");
+  // const blogPost = await BlogPostModel.findById(id).populate("topicName");
+  
+  const blogPost = await BlogPostModel.findById(id).populate("blogTopic","name");
 
   if (!blogPost) {
     return next(new AppError("Blog not found", 404));
@@ -84,9 +98,12 @@ const updateBlogPostById = catchAsync(async (req, res, next) => {
     );
   }
 
+  const topic = await TopicModel.findById(blogTopic);
+  if (!topic) return next(new AppError("Blog Topic does not exist", 403));
+
   const updated = await BlogPostModel.findByIdAndUpdate(
     id,
-    { title, author, content },
+    { title, author, content, blogTopic: topic._id },
     {
       new: true,
       populate: {
@@ -141,7 +158,6 @@ const deleteBlogPostById = catchAsync(async (req, res, next) => {
   }
   await LikeDislike.deleteMany({ blog: id });
   await Comment.deleteMany({ blog: id });
-
   const deleted = await BlogPostModel.findByIdAndDelete(id);
   if (deleted) {
     res.status(201).json({
@@ -158,7 +174,9 @@ const getPostsByTopic = catchAsync(async (req, res, next) => {
   const id = req.params.id;
   if (!id) return next(new AppError("ID is not present in parameter", 403));
 
-  const posts = await BlogPostModel.find({ blogTopic: id });
+  const posts = await BlogPostModel.find({ blogTopic: id })
+    .populate("blogTopic", "name")
+    .lean();
   if (!posts || posts.length === 0)
     return next(new AppError("Blog Not Found For Requested Topic", 404));
 
@@ -167,33 +185,46 @@ const getPostsByTopic = catchAsync(async (req, res, next) => {
 
 //************************************* GET MOST RECENT BLOGPOST *********************************
 
+
 const getMostRecentBlogPost = catchAsync(async (req, res, next) => {
-  const query = req.query.limit || 1; // for query
-  if (isNaN(query)) return next(new AppError("Query must be a Number"));
+  let query = req.query.limit || null; // for query
+  if (query && isNaN(query)) return next(new AppError("Query must be a Number"));
+
+  const queryOptions = {};
+
+  if (query) {
+    const blogCount = await BlogPostModel.countDocuments();
+    if (+query > blogCount) {
+      return next(new AppError("Limit exceeds number of available recent blog posts.", 400));
+    } if (+query < blogCount) {
+      return next(new AppError("Limit is less than number of available recent blog posts.", 400));
+    }
+    queryOptions.limit = +query;
+  }
+
 
   const mostRecentBlog = await BlogPostModel.find()
     .sort({ createdAt: -1 })
-    .limit(+query);
+    .populate("blogTopic", "name")
+    .lean()
+    .setOptions(queryOptions);
 
-  if (mostRecentBlog.length < query) {
-    return next(
-      new AppError(
-        "Limit can't be greater than the total number of signed up users"
-      )
-    );
+  if (mostRecentBlog.length === 0) {
+    return next(new AppError("Blog Not Found", 400));
   }
 
   res.status(200).json(mostRecentBlog);
 });
 
 // *************************************GET MOST LIKED BLOGS*****************************************
-const getMostLikedBlog = catchAsync(async (req, res, next) => {
-  const query = req.query.limit || 1;
-  if (isNaN(query)) {
-    return next(new AppError("Query must be a Number"));
-  }
 
+const getMostLikedBlog = catchAsync(async (req, res, next) => {
   const temp = await LikeDislike.aggregate([
+    {
+      $match: {
+        like: true,
+      },
+    },
     {
       $group: {
         _id: "$blog",
@@ -202,9 +233,6 @@ const getMostLikedBlog = catchAsync(async (req, res, next) => {
     },
     {
       $sort: { count: -1 },
-    },
-    {
-      $limit: +query,
     },
     {
       $lookup: {
@@ -226,14 +254,18 @@ const getMostLikedBlog = catchAsync(async (req, res, next) => {
     },
   ]);
 
-  if (!temp) {
-    return next(new AppError("Something went wrong", 500));
+  if (temp.length === 0) {
+    return next(new AppError("No liked blog posts yet", 404));
   }
 
+  const maxLikes = temp[0].total_likes;
+  const mostLikedBlogs = temp.filter((blog) => blog.total_likes === maxLikes);
+
   res.json({
-    output: temp,
+    output: mostLikedBlogs,
   });
 });
+
 
 module.exports = {
   createBlogPost,
